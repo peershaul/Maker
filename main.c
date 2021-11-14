@@ -262,6 +262,9 @@ int main(int argc, char* argv[]){
 
     read_makefile(makefile_obj, &c_files, &relevent);
 
+    for(uint16_t i = 0; i < relevent.length; i++)
+      printf("%d: \"%s\"\n", i + 1, relevent.elements[i].path);
+
     // Finishing up
     free(main_obj);
     free(c_files.elements);

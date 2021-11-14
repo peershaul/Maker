@@ -31,9 +31,18 @@ void look_for_irelevent(CArray* irelevant, CArray* interesting_files, const char
       index++;
       word_index++;
     }
-    printf("%s\n", word); 
 
-    // TODO: (peershaul) - add a loop that searches for a file that is in the list of interesting files
+    char path_dumper[LINE_MAX_LENGTH] = {0};
+
+    strcat(path_dumper, "/");
+    strcat(path_dumper, word);
+    
+    for(uint16_t i = 0; i < interesting_files->length; i++)
+      if(handmade_str_ends_with(interesting_files->elements[i].path, path_dumper)){
+	irelevant->elements[irelevant->length] = interesting_files->elements[i];
+	irelevant->length++;
+	break;
+      }
     
     memset(word, 0x00, LINE_MAX_LENGTH);
   }
@@ -83,5 +92,20 @@ void read_makefile(FileOrDirectory* makefile_obj, CArray* c_files, CArray* relev
     }
 
     look_for_irelevent(&irelevent, c_files, uniques);
+
+    for(uint16_t i = 0; i < c_files->length; i++){
+      bool found = false;
+      for(uint16_t j = 0; j < irelevent.length; j++)
+	if(handmade_cmpstr(irelevent.elements[i].path, c_files->elements[i].path)){
+	    found = true;
+	    break;
+	  }
+
+      if(!found) {
+	relevant->elements[relevant->length] = c_files->elements[i];
+	relevant->length++;
+      }
+      
+    } 
     fclose(file);
 }
