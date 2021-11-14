@@ -245,21 +245,27 @@ int main(int argc, char* argv[]){
     }
 
     // Allocate memory for the array of c files
+    // All the c files found
     CArray c_files = {(FileOrDirectory*) malloc(C_ARR_LIMIT * sizeof(FileOrDirectory)), 0};
+
+    // The c files that arent mentioned in the unique section
     CArray relevent = {(FileOrDirectory*) malloc(C_ARR_LIMIT * sizeof(FileOrDirectory)), 0};
 
+    // Searching recursivlly for c files in the current folder structure 
     search_for_c_files(&c_files, main_obj, ignore_paths_start, &settings);
-
+    
     printf("\nfound those c files:\n");
     for(uint16_t i = 0; i < c_files.length; i++)
         printf("\t%s\n", c_files.elements[i].path);
 
+    // Looking for a makefile
     FileOrDirectory* makefile_obj = look_for_makefile(main_obj);
     if(makefile_obj != NULL){
         printf("\nFound makefile.maker: \"%s\"\n", makefile_obj->path);
     }
     else printf("\nHavent found a makefile.maker\n");
 
+    // Readoing the makefile 
     read_makefile(makefile_obj, &c_files, &relevent);
 
     for(uint16_t i = 0; i < relevent.length; i++)

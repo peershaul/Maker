@@ -10,6 +10,7 @@
 
 #define STR_SIZE 65536
 
+// Returns a list of all the c files mentioned under unique portion of the makefile.maker file 
 void look_for_irelevent(CArray* irelevant, CArray* interesting_files, const char* uniques){
   uint64_t uniques_length = strlen(uniques);
   char word[LINE_MAX_LENGTH];
@@ -48,6 +49,7 @@ void look_for_irelevent(CArray* irelevant, CArray* interesting_files, const char
   }
 }
 
+// Reading the makefile 
 void read_makefile(FileOrDirectory* makefile_obj, CArray* c_files, CArray* relevant){
     FILE* file = fopen(makefile_obj->path, "r");
 
@@ -69,6 +71,7 @@ void read_makefile(FileOrDirectory* makefile_obj, CArray* c_files, CArray* relev
 
     CArray irelevent = {(FileOrDirectory*) malloc(C_ARR_LIMIT * sizeof(FileOrDirectory)), 0};
 
+    // Loops over every line of the makerfile and determaining if it belongs to unique variable or ignore categories
     while(fgets(line, LINE_MAX_LENGTH, file)){
         if(handmade_str_contains(line, "#begin_unique") != -1 && !unique_flag){
             unique_flag = true;
@@ -91,8 +94,10 @@ void read_makefile(FileOrDirectory* makefile_obj, CArray* c_files, CArray* relev
             strcat(variables, line);
     }
 
+    // Looking for c files mentioned under unique
     look_for_irelevent(&irelevent, c_files, uniques);
 
+    // adding to the relevant list the c files who arent mentions under the unqiue string
     for(uint16_t i = 0; i < c_files->length; i++){
       bool found = false;
       for(uint16_t j = 0; j < irelevent.length; j++)
@@ -100,7 +105,7 @@ void read_makefile(FileOrDirectory* makefile_obj, CArray* c_files, CArray* relev
 	    found = true;
 	    break;
 	  }
-
+      
       if(!found) {
 	relevant->elements[relevant->length] = c_files->elements[i];
 	relevant->length++;
