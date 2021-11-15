@@ -3,6 +3,10 @@
 
 #include "main.h"
 
-void read_makefile(FileOrDirectory* makefile_obj, CArray* c_files, CArray* relevant);
+void read_makefile(FileOrDirectory* makefile_obj, CArray* c_files, CArray* relevant,
+		   char** variables, char** uniques);
+
+void write_to_makefile(FileOrDirectory* root, FileOrDirectory* maker_file, CArray* relevent,
+		       char* variables, char* uniques);
 
 #endif

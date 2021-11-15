@@ -10,25 +10,29 @@
 
 #define STR_SIZE 65536
 
-// Returns a list of all the c files mentioned under unique portion of the makefile.maker file 
-void look_for_irelevent(CArray* irelevant, CArray* interesting_files, const char* uniques){
+// Returns a list of all the c files mentioned under unique portion of the
+// makefile.maker file
+void look_for_irelevent(CArray *irelevant, CArray *interesting_files,
+                        const char *uniques) {
   uint64_t uniques_length = strlen(uniques);
   char word[LINE_MAX_LENGTH];
   bool large_quit = false;
   bool small_quit = false;
   uint64_t index = 0;
 
-  while(!large_quit){
+  while (!large_quit) {
     uint16_t word_index = 0;
-    small_quit = false;
-    
-    while(!small_quit && !large_quit){
-      if(uniques[index] != ' ' && uniques[index] != '\n')
-	word[word_index] = uniques[index];
-      else small_quit = true;
+    small_quit = 0;
 
-      if(index == uniques_length - 1) large_quit = true;
-      
+    while (!small_quit && !large_quit) {
+      if (uniques[index] != ' ' && uniques[index] != '\n')
+        word[word_index] = uniques[index];
+      else
+        small_quit = true;
+
+      if (index == uniques_length - 1)
+        large_quit = true;
+
       index++;
       word_index++;
     }
@@ -37,80 +41,105 @@ void look_for_irelevent(CArray* irelevant, CArray* interesting_files, const char
 
     strcat(path_dumper, "/");
     strcat(path_dumper, word);
-    
-    for(uint16_t i = 0; i < interesting_files->length; i++)
-      if(handmade_str_ends_with(interesting_files->elements[i].path, path_dumper)){
-	irelevant->elements[irelevant->length] = interesting_files->elements[i];
-	irelevant->length++;
-	break;
+
+    for (uint16_t i = 0; i < interesting_files->length; i++)
+      if (handmade_str_ends_with(interesting_files->elements[i].path,
+                                 path_dumper)) {
+        irelevant->elements[irelevant->length] = interesting_files->elements[i];
+        irelevant->length++;
+        break;
       }
-    
+
     memset(word, 0x00, LINE_MAX_LENGTH);
   }
 }
 
-// Reading the makefile 
-void read_makefile(FileOrDirectory* makefile_obj, CArray* c_files, CArray* relevant){
-    FILE* file = fopen(makefile_obj->path, "r");
+// Reading the makefile
+void read_makefile(FileOrDirectory *makefile_obj, CArray *c_files,
+                   CArray *relevant, char** variables, char** uniques) {
+  FILE *file = fopen(makefile_obj->path, "r");
 
-    if(file == NULL){
-        fprintf(stderr, "Cannot open \"%s\"\n", makefile_obj->path);
-        return;
+  if (file == NULL) {
+    fprintf(stderr, "Cannot open \"%s\"\n", makefile_obj->path);
+    return;
+  }
+
+  printf("Reading \"%s\"....\n", makefile_obj->path);
+
+  char line[LINE_MAX_LENGTH] = {0};
+  bool unique_flag = false;
+
+  *variables = (char *)malloc(STR_SIZE * sizeof(char));
+  *uniques = (char *)malloc(STR_SIZE * sizeof(char));
+
+  memset(*variables, 0x00, STR_SIZE);
+  memset(*uniques, 0x00, STR_SIZE);
+
+  CArray irelevent = {
+      (FileOrDirectory *)malloc(C_ARR_LIMIT * sizeof(FileOrDirectory)), 0};
+
+  // Loops over every line of the makerfile and determaining if it belongs to
+  // unique variable or ignore categories
+  while (fgets(line, LINE_MAX_LENGTH, file)) {
+    if (handmade_str_contains(line, "#begin_unique") != -1 && !unique_flag) {
+      unique_flag = true;
+      strcat(*uniques, line);
+      continue;
     }
 
-    printf("Reading \"%s\"....\n", makefile_obj->path);
-
-    char line[LINE_MAX_LENGTH] = {0};
-    bool unique_flag = false;
-
-    char* variables = (char*) malloc(STR_SIZE * sizeof(char));
-    char* uniques = (char*) malloc(STR_SIZE * sizeof(char));
-
-    memset(variables, 0x00, STR_SIZE);
-    memset(uniques, 0x00, STR_SIZE);
-
-    CArray irelevent = {(FileOrDirectory*) malloc(C_ARR_LIMIT * sizeof(FileOrDirectory)), 0};
-
-    // Loops over every line of the makerfile and determaining if it belongs to unique variable or ignore categories
-    while(fgets(line, LINE_MAX_LENGTH, file)){
-        if(handmade_str_contains(line, "#begin_unique") != -1 && !unique_flag){
-            unique_flag = true;
-            strcat(uniques, line);
-            continue;
-        }
-
-        if(handmade_str_contains(line, "#end_unique") != -1 && unique_flag){
-            unique_flag = false;
-            strcat(uniques, line);
-            continue;
-        }
-
-        if(unique_flag){
-            strcat(uniques, line);
-            continue;
-        }
-
-        if(handmade_str_contains(line, "=") != -1)
-            strcat(variables, line);
+    if (handmade_str_contains(line, "#end_unique") != -1 && unique_flag) {
+      unique_flag = false;
+      strcat(*uniques, line);
+      continue;
     }
 
-    // Looking for c files mentioned under unique
-    look_for_irelevent(&irelevent, c_files, uniques);
+    if (unique_flag) {
+      strcat(*uniques, line);
+      continue;
+    }
 
-    // adding to the relevant list the c files who arent mentions under the unqiue string
-    for(uint16_t i = 0; i < c_files->length; i++){
-      bool found = false;
-      for(uint16_t j = 0; j < irelevent.length; j++)
-	if(handmade_cmpstr(irelevent.elements[i].path, c_files->elements[i].path)){
-	    found = true;
-	    break;
-	  }
-      
-      if(!found) {
-	relevant->elements[relevant->length] = c_files->elements[i];
-	relevant->length++;
+    if (handmade_str_contains(line, "=") != -1)
+      strcat(*variables, line);
+  }
+
+  //variables[strlen(variables)] = '\0';
+  //uniques[strlen(uniques)] = '\0';
+
+  // Looking for c files mentioned under unique
+  look_for_irelevent(&irelevent, c_files, *uniques);
+
+  // adding to the relevant list the c files who arent mentions under the unqiue
+  // string
+  for (uint16_t i = 0; i < c_files->length; i++) {
+    bool found = false;
+    for (uint16_t j = 0; j < irelevent.length; j++)
+      if (handmade_cmpstr(irelevent.elements[i].path,
+                          c_files->elements[i].path)) {
+        found = true;
+        break;
       }
-      
-    } 
-    fclose(file);
+
+    if (!found) {
+      relevant->elements[relevant->length] = c_files->elements[i];
+      relevant->length++;
+    }
+  }
+  fclose(file);
 }
+
+
+void write_to_makefile(FileOrDirectory* root, FileOrDirectory* maker_file, CArray* relevant, char* variables, char* uniques){
+
+  char makefile_path[PATH_MAX_LENGTH] = "";
+  strcat(makefile_path, root->path);
+  strcat(makefile_path, "/makefile");
+
+  FILE* makefile = fopen(makefile_path, "w");
+
+  fprintf(makefile, "%s\n\n%s\n", variables, uniques);
+
+  // TODO: Do not forget to add all the automatic compilation agent thing!!
+
+  fclose(makefile);
+}
+

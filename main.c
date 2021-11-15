@@ -265,11 +265,16 @@ int main(int argc, char* argv[]){
     }
     else printf("\nHavent found a makefile.maker\n");
 
-    // Readoing the makefile 
-    read_makefile(makefile_obj, &c_files, &relevent);
+    char* makefile_variables;
+    char* makefile_uniques;
+    
+    // Reading the makefile 
+    read_makefile(makefile_obj, &c_files, &relevent, &makefile_variables, &makefile_uniques);
 
     for(uint16_t i = 0; i < relevent.length; i++)
       printf("%d: \"%s\"\n", i + 1, relevent.elements[i].path);
+
+    write_to_makefile(main_obj, makefile_obj, &relevent, makefile_variables, makefile_uniques); 
 
     // Finishing up
     free(main_obj);
